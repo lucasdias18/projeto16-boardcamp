@@ -31,7 +31,7 @@ export async function getCustomers(req, res) {
     try {
         if (!id) {
             const users = await db.query("SELECT * FROM customers")
-            res.send(users.rows)
+            return res.send(users.rows)
         }
         const users = await db.query("SELECT * FROM customers WHERE id = $1", [id])
 
