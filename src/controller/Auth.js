@@ -9,7 +9,6 @@ export async function signUp(req, res) {
         const existsUser = await db.query(`SELECT * FROM customers WHERE cpf = $1`, [cpf])
 
         if (existsUser.rowCount > 0) return res.status(409).send('Usuário já cadastrado!')
-        console.log('teste')
 
         const newClient = await db.query(
             `INSERT INTO customers (name, phone, cpf, birthday)
@@ -36,6 +35,8 @@ export async function getCustomers(req, res) {
         }
         const users = await db.query("SELECT * FROM customers WHERE id = $1", [id])
 
+        if (users.rowCount === 0) res.sendStatus(404)
+
         res.send(users.rows)
 
     }
@@ -50,11 +51,15 @@ export async function putCustomers(req, res) {
     const { id } = req.params
 
     try {
+        
+        const existsUser = await db.query(`SELECT * FROM customers WHERE cpf = $1`, [cpf])
+
+        if (existsUser.rowCount > 0) return res.status(409).send('Usuário já cadastrado!')
 
         const users = await db.query(`UPDATE customers
                         SET name=$1, phone=$2, cpf=$3, birthday=$4
                         WHERE id = $5;`, [name, phone, cpf, birthday, id])
-                        
+
 
         res.send(users.rows)
 

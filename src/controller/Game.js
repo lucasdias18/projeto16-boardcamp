@@ -12,7 +12,7 @@ export async function postGame(req, res) {
         if (existsGame.rowCount > 0) return res.status(409).send('Jogo já cadastrado!')
 
         const newGame = await db.query(
-            `INSERT INTO games (name, image, stockTotal, pricePerDay)
+            `INSERT INTO games (name, image, "stockTotal", "pricePerDay")
             VALUES ($1, $2, $3, $4);`
             , [name, image, stockTotal, pricePerDay])
 
@@ -32,25 +32,6 @@ export async function getGames(req, res) {
         const games = await db.query("SELECT * FROM games")
 
         res.send(games.rows)
-
-    }
-    catch (error) {
-        res.status(500).send(error.message)
-    }
-}
-
-export async function putCustomers(req, res) {
-
-    const { name, phone, cpf, birthday } = req.body
-    const { id } = req.params
-
-    try {
-
-        const users = await db.query(`UPDATE customers
-                        SET (name, phone, cpf, birthday)
-                        WHERE id = $1;`, [id])
-
-        res.send(users.rows)
 
     }
     catch (error) {
