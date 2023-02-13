@@ -35,7 +35,7 @@ export async function getCustomers(req, res) {
         }
         const users = await db.query("SELECT * FROM customers WHERE id = $1", [id])
 
-        if (users.rowCount === 0) res.sendStatus(404)
+        if (users.rowCount === 0) return res.sendStatus(404)
 
         res.send(users.rows)
 
