@@ -1,10 +1,6 @@
 import dayjs from 'dayjs'
 import db from '../config/database.js'
 
-export async function postRental(req, res) {
-
-    const { customerId, gameId, daysRented } = req.body
-
     // {
     //     id: 1,
     //     customerId: 1,
@@ -16,6 +12,9 @@ export async function postRental(req, res) {
     //     delayFee: null             // multa total paga por atraso (dias que passaram do prazo vezes o preço por dia do jogo)
     //   }
 
+export async function postRental(req, res) {
+
+    const { customerId, gameId, daysRented } = req.body
 
     try {
 
@@ -27,7 +26,6 @@ export async function postRental(req, res) {
     // `, [id])
 
     const price = await db.query(`SELECT pricePerDay FROM games WHERE id = $1`, [gameId])
-    // console.log(price)
 
     const originalPrice = price*daysRented
 

@@ -4,9 +4,6 @@ export async function signUp(req, res) {
 
     const { name, phone, cpf, birthday } = req.body
 
-    // const passwordHash = bcrypt.hashSync(password, 10);
-
-
     try {
 
         const existsUser = await db.query(`SELECT * FROM customers WHERE cpf = $1`, [cpf])
@@ -33,13 +30,11 @@ export async function getCustomers(req, res) {
     const { id } = req.params
 
     try {
-        // console.log('teste')
         if (!id) {
             const users = await db.query("SELECT * FROM customers")
             res.send(users.rows)
         }
         const users = await db.query("SELECT * FROM customers WHERE id = $1", [id])
-        // console.log(existsUser)
 
         res.send(users.rows)
 
@@ -59,9 +54,7 @@ export async function putCustomers(req, res) {
         const users = await db.query(`UPDATE customers
                         SET name=$1, phone=$2, cpf=$3, birthday=$4
                         WHERE id = $5;`, [name, phone, cpf, birthday, id])
-        // console.log(existsUser)
-
-        // UPDATE usuarios SET senh='010101' WHERE id = 2;
+                        
 
         res.send(users.rows)
 
