@@ -1,16 +1,6 @@
 import dayjs from 'dayjs'
 import db from '../config/database.js'
 
-    // {
-    //     id: 1,
-    //     customerId: 1,
-    //     gameId: 1,
-    //     rentDate: '2021-06-20',    // data em que o aluguel foi feito
-    //     daysRented: 3,             // por quantos dias o cliente agendou o aluguel
-    //     returnDate: null,          // data que o cliente devolveu o jogo (null enquanto não devolvido)
-    //     originalPrice: 4500,       // preço total do aluguel em centavos (dias alugados vezes o preço por dia do jogo)
-    //     delayFee: null             // multa total paga por atraso (dias que passaram do prazo vezes o preço por dia do jogo)
-    //   }
 
 export async function postRental(req, res) {
 
@@ -18,21 +8,47 @@ export async function postRental(req, res) {
 
     try {
 
-    //     const receita = await db.query(`
-    // SELECT receitas.*, categorias.nome AS nome_categoria FROM receitas
-    // JOIN categorias
-    // ON receitas.id_categoria = categorias.id
-    // WHERE receitas.id = $1;
-    // `, [id])
+    const existsUser = await db.query(`SELECT * FROM customers WHERE id = $1`, [customerId])
 
-    const price = await db.query(`SELECT pricePerDay FROM games WHERE id = $1`, [gameId])
+    if (existsUser.rowCount === 0) return res.status(400).send('Usuário não encontrado!')
 
-    const originalPrice = price*daysRented
+    const existsGame = await db.query(`SELECT * FROM games WHERE id = $1`, [gameId])
+
+    if (existsGame.rowCount === 0) return res.status(400).send('Jogo não encontrado!')
+
+    if (daysRented <= 0) return res.status(400).send('Dias de aluguel deve ser positivo')
+
+    const price = await db.query(`SELECT "pricePerDay" FROM games WHERE id = $1`, [gameId])
+
+    const rentDate = dayjs().format("DD/MM/YYYY")
+
+    const returnDate = null
+    const delayFee = null
+
+    const originalPrice = price.rows[0].pricePerDay*daysRented
+
+    const quantityGame = existsGame.rows[0].stockTotal - 1
+
+    if (quantityGame <= 0) {
+        const stockGame = await db.query(
+            `UPDATE games
+             SET "stockTotal" = $1
+             WHERE id = $2;`, [0, gameId]
+        )
+        return res.status(400).send('Jogo não está mais disponível')
+    }
+
+    const stockGame = await db.query(
+        `UPDATE games
+         SET "stockTotal" = $1
+         WHERE id = $2;`, [quantityGame, gameId]
+    )
+
 
         const newRental = await db.query(
-            `INSERT INTO rentals (customerId, gameId, rentDate, daysRented, returnDate, originalPrice, delayFee)
+            `INSERT INTO rentals ("customerId", "gameId", "rentDate", "daysRented", "returnDate", "originalPrice", "delayFee")
             VALUES ($1, $2, $3, $4, $5, $6, $7);`
-            , [customerId, gameId, '13/02/2023', daysRented, null, originalPrice, null])
+            , [customerId, gameId, rentDate, daysRented, returnDate, originalPrice, delayFee])
 
         res.status(201).send("Aluguel cadastrado com sucesso!")
 
@@ -47,7 +63,7 @@ export async function getRentals(req, res) {
 
     try {
 
-        const rentals = await db.query("SELECT * FROM rentals")
+        const rentals = await db.query(`SELECT * FROM rentals`)
 
         res.send(rentals.rows)
 
@@ -63,33 +79,56 @@ export async function finishRental(req, res) {
 
     try {
 
-        // const users = await db.query(`UPDATE customers
-        //                 SET (name, phone, cpf, birthday)
-        //                 WHERE id = $1;`, [id])
-        // console.log(existsUser)
-
         const rental = await db.query("SELECT * FROM rentals WHERE id = $1", [id])
 
-        const price = rental.rows.price/rental.rows.daysRented
+        if (rental.rowCount === 0) return res.status(400).send('Aluguel não encontrado. Verifique se o Id está correto.')
+
+        if (rental.rows[0].returnDate !== null) return res.status(409).send('Aluguel já foi concluído!')
+
+        const price = rental.rows[0].originalPrice/rental.rows[0].daysRented
 
         const day = dayjs().format("DD/MM/YYYY")
 
-        const multa = rental.rows.rentDate - day
+        const dayRental = Date.parse(rental.rows[0].rentDate)
 
-        if (multa > rental.rows.daysRented) {
+        const dayReturn = Date.now()
 
-            delayFee = price*multa
+        const multa = parseInt((dayReturn - dayRental)/86400000)
+
+        const game = await db.query(`SELECT * FROM games WHERE id = $1`, [rental.rows[0].gameId])
+
+        const quantityGame = game.rows[0].stockTotal
+
+
+        if (multa > 0) {
+            const delayFee = price*multa
 
             const finishRental = await db.query(`UPDATE rentals
-                        SET returnDate=$1, delayFee=$2
+                        SET "returnDate"=$1, "delayFee"=$2
                         WHERE id = $3;`, [day, delayFee, id])
             
-            res.send(reantal.rows)
+            const newStockGame = quantityGame + 1
+
+            const stockGame = await db.query(
+                `UPDATE games
+                 SET "stockTotal" = $1
+                 WHERE id = $2;`, [newStockGame, rental.rows[0].gameId]
+            )
+
+            return res.send(rental.rows)
         }
         
-        const finishRental = await db.query(`UPDATE rentals
-                        SET returnDate=$1
-                        WHERE id = $1;`, [day, id])
+        const finishRental = await db.query(
+            `UPDATE rentals
+            SET "returnDate"=$1
+            WHERE id = $2;`, [day, id])
+
+        const newStockGame = quantityGame + 1
+
+        const stockGame = await db.query(
+            `UPDATE games
+            SET "stockTotal" = $1
+            WHERE id = $2;`, [newStockGame, rental.rows[0].gameId])
 
         res.send(rental.rows)
 

@@ -10,6 +10,8 @@ export async function signUp(req, res) {
 
         if (existsUser.rowCount > 0) return res.status(409).send('Usuário já cadastrado!')
 
+        if (Number(cpf) === NaN) return res.sendStatus(400)
+
         const newClient = await db.query(
             `INSERT INTO customers (name, phone, cpf, birthday)
             VALUES ($1, $2, $3, $4);`
@@ -51,8 +53,10 @@ export async function putCustomers(req, res) {
     const { id } = req.params
 
     try {
+
+        if (Number(cpf) === NaN) return res.sendStatus(400)
         
-        const existsUser = await db.query(`SELECT * FROM customers WHERE cpf = $1`, [cpf])
+        const existsUser = await db.query(`SELECT * FROM customers WHERE id IS DISTINCT FROM $1 AND cpf = $2`, [id, cpf])
 
         if (existsUser.rowCount > 0) return res.status(409).send('Usuário já cadastrado!')
 

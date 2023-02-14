@@ -6,9 +6,3 @@ export const gameSchema = joi.object({
     stockTotal: joi.number().required(),
     pricePerDay: joi.number().required()
 });
-
-  // {
-    //     name: 'Banco Imobiliário',
-    //     image: 'http://',
-    //     stockTotal: 3,
-    //     pricePerDay: 1500,

@@ -11,6 +11,8 @@ export async function postGame(req, res) {
 
         if (existsGame.rowCount > 0) return res.status(409).send('Jogo já cadastrado!')
 
+        if (stockTotal < 0 || pricePerDay < 0) return res.sendStatus(400)
+
         const newGame = await db.query(
             `INSERT INTO games (name, image, "stockTotal", "pricePerDay")
             VALUES ($1, $2, $3, $4);`
