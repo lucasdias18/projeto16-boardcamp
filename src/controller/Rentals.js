@@ -63,9 +63,35 @@ export async function getRentals(req, res) {
 
     try {
 
-        const rentals = await db.query(`SELECT * FROM rentals`)
+        // const rentals = await db.query(`SELECT * FROM rentals`)
 
-        res.send(rentals.rows)
+        // res.send(rentals.rows)
+
+        const { rows } = await db.query(`
+            SELECT r.*, c.id AS cid, c.name as cname,
+            g.id as gid, g.name as gname
+            FROM rentals as r
+            JOIN customers as c
+            ON r."customerId" = c.id
+            JOIN games as g
+            ON r."gameId" = g.id
+        `)
+
+        const results = rows.map(({ cid, cname, gid, gname, ...rental }) => {
+        return {
+            ...rental,
+            customer: {
+            id: cid,
+            name: cname
+            },
+            game: {
+            id: gid,
+            name: gname
+            }
+        }
+        })
+
+        res.send(results)
 
     }
     catch (error) {
